@@ -5,23 +5,23 @@ import { WebSocketService } from '../services/web-socket.service';
   selector: 'app-editor',
   standalone: false,
   templateUrl: './editor.component.html',
-  styleUrls: ['./editor.component.css'],
+  styleUrls: ['./editor.component.css']
 })
 export class EditorComponent implements OnInit {
-  documentContent: string = '';
-  updates: string[] = [];
+  textContent: string = '';
 
-  constructor(private wsService: WebSocketService) {}
+  constructor(private webSocketService: WebSocketService) {}
 
   ngOnInit(): void {
-    this.wsService.connect();
-    this.wsService.onMessage().subscribe((message) => {
-      this.documentContent = message;
-      this.updates.push(`Update: ${message}`);
+    // Subscribe to text updates from WebSocket
+    this.webSocketService.onTextUpdate().subscribe((message: string) => {
+      this.textContent = message;
     });
+    this.webSocketService.connect();
   }
 
-  onContentChange() {
-    this.wsService.sendMessage(this.documentContent);
+  // Send text update to the backend via WebSocket
+  updateText(): void {
+    this.webSocketService.sendTextUpdate(this.textContent);
   }
 }

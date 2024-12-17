@@ -1,5 +1,10 @@
-<div class="editor-container">
-    <h1>Real-Time Collaborative Drawing Board</h1>
-    <canvas #drawingCanvas></canvas>
-  </div>
-  
+<div class="drawing-container">
+  <h2>Drawing Board</h2>
+  <canvas 
+    #drawingCanvas 
+    (mousedown)="startDrawing($event)" 
+    (mousemove)="draw($event)" 
+    (mouseup)="stopDrawing()" 
+    (mouseout)="stopDrawing()">
+  </canvas>
+</div>

@@ -15,9 +15,9 @@ export class DrawingComponent implements OnInit {
   constructor(private wsService: WebSocketService) {}
 
   ngOnInit(): void {
-    this.wsService.connect();
-    this.setupCanvas();
-    this.listenForDrawing();
+    this.wsService.connect(); // Initialize the WebSocket connection
+    this.setupCanvas(); // Set up the canvas for drawing
+    this.listenForDrawingUpdates(); // Listen for drawing updates from WebSocket
   }
 
   setupCanvas() {
@@ -26,7 +26,7 @@ export class DrawingComponent implements OnInit {
     canvasEl.width = window.innerWidth - 50;
     canvasEl.height = window.innerHeight - 100;
 
-    // Event Listeners
+    // Event Listeners for mouse actions
     canvasEl.addEventListener('mousedown', (e) => this.startDrawing(e));
     canvasEl.addEventListener('mousemove', (e) => this.draw(e));
     canvasEl.addEventListener('mouseup', () => this.stopDrawing());
@@ -35,7 +35,7 @@ export class DrawingComponent implements OnInit {
 
   startDrawing(event: MouseEvent) {
     this.drawing = true;
-    this.draw(event);
+    this.draw(event);  // Immediately start drawing on mouse down
   }
 
   draw(event: MouseEvent) {
@@ -53,19 +53,20 @@ export class DrawingComponent implements OnInit {
     this.ctx.beginPath();
     this.ctx.moveTo(x, y);
 
-    // Send the drawing data to the WebSocket
-    this.wsService.sendMessage(JSON.stringify({ x, y, drawing: true }));
+    // Send drawing data via WebSocket using the sendDrawUpdate method
+    this.wsService.sendDrawUpdate({ x, y, drawing: true });
   }
 
   stopDrawing() {
     this.drawing = false;
     this.ctx.beginPath();
-    this.wsService.sendMessage(JSON.stringify({ drawing: false }));
+
+    // Notify WebSocket that drawing has stopped
+    this.wsService.sendDrawUpdate({ drawing: false });
   }
 
-  listenForDrawing() {
-    this.wsService.onMessage().subscribe((message) => {
-      const data = JSON.parse(message);
+  listenForDrawingUpdates() {
+    this.wsService.onDrawUpdate().subscribe((data: any) => {
       if (data.drawing === false) {
         this.ctx.beginPath();
         return;
