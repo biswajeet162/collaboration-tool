@@ -1,0 +1,17 @@
+<div class="editor-container">
+    <h1>Real-Time Collaborative Editor</h1>
+  
+    <textarea
+      [(ngModel)]="documentContent"
+      (input)="onContentChange()"
+      placeholder="Start typing your document..."
+    ></textarea>
+  
+    <div class="updates">
+      <h3>Live Updates</h3>
+      <ul>
+        <li *ngFor="let update of updates">{{ update }}</li>
+      </ul>
+    </div>
+  </div>
+  

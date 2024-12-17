@@ -39,7 +39,9 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [
+            "src/polyfills.ts"
+          ]
           },
           "configurations": {
             "production": {
