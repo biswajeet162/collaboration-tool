@@ -1,81 +1,129 @@
 import { Injectable } from '@angular/core';
-import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { BehaviorSubject } from 'rxjs';
+import { Stomp } from '@stomp/stompjs';
+import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
+import { Observable } from 'rxjs';
+import { MessageModel } from '../model/message-model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WebSocketService {
-  private stompClient: Client;
-  private textSubject = new BehaviorSubject<string>(''); // For text updates
-  private drawSubject = new BehaviorSubject<any>(null);  // For drawing updates
+  private stompClient: any | null = null;
+  private isConnected: boolean = false;
+  private connectionPromise: Promise<string> | null = null;
 
-  constructor() {
-    this.stompClient = new Client({
-      brokerURL: 'ws://localhost:8080/ws', // WebSocket endpoint
-      connectHeaders: {},
-      debug: (msg: string) => console.log(msg),
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-      webSocketFactory: () => new SockJS('http://localhost:8081/ws'), // SockJS URL
+  private textSubject = new BehaviorSubject<MessageModel>(new MessageModel()); // For text updates
+  textUpdates$: Observable<MessageModel> = this.textSubject.asObservable();
+
+  private drawSubject = new BehaviorSubject<any>(null);  // For drawing updates
+  drawUpdates$: Observable<any> = this.drawSubject.asObservable();
+
+  
+  connect(): Promise<string> {
+    if (this.isConnected) {
+      console.log('WebSocket already connected');
+      return Promise.resolve('connected');
+    }
+
+    if (this.connectionPromise) {
+      return this.connectionPromise;
+    }
+
+    this.connectionPromise = new Promise((resolve, reject) => {
+      const socket = new SockJS('http://localhost:8081/ws'); // Backend WebSocket endpoint
+      this.stompClient = Stomp.over(socket);
+
+      this.stompClient.connect(
+        {},
+        (frame: any) => {
+          console.log('Connected to WebSocket:', frame);
+          this.isConnected = true;
+          this.connectionPromise = null;
+          resolve('connected');
+        },
+        (error: any) => {
+          console.error('WebSocket connection error:', error);
+          this.connectionPromise = null;
+          reject('not connected');
+        }
+      );
     });
 
-    // On successful connection, subscribe to text and drawing topics
-    this.stompClient.onConnect = (frame) => {
-      console.log('Connected to WebSocket');
-
-      // Subscribe to text topic
-      this.stompClient.subscribe('/topic/textUpdates', (message) => {
-        this.textSubject.next(message.body);
-      });
-
-      // Subscribe to drawing topic
-      this.stompClient.subscribe('/topic/drawingUpdates', (message) => {
-        const data = JSON.parse(message.body);
-        this.drawSubject.next(data);
-      });
-    };
-
-    this.stompClient.onStompError = (frame) => {
-      console.error('Broker reported error: ', frame.headers['message']);
-      console.error('Additional details: ', frame.body);
-    };
+    return this.connectionPromise;
   }
 
-  // Activate WebSocket connection
-  connect(): void {
-    this.stompClient.activate();
+  // This is for Text Messaging
+  subscribeToTopicForTextMessage(topic: string): void {
+    if (this.stompClient) {
+      this.stompClient.subscribe(topic, (message: any) => {
+        console.log('Received message from text:', message.body);
+
+        const decodedMessage = new TextDecoder().decode(message._binaryBody);
+        const parsedMessage = JSON.parse(decodedMessage);
+
+        this.textSubject.next(parsedMessage); // Push new messages to the subject
+      });
+    } else {
+      console.error('Cannot subscribe: WebSocket not connected.');
+    }
   }
 
-  // Send text updates to the server
-  sendTextUpdate(message: string): void {
-    if (this.stompClient && this.stompClient.connected) {
-      this.stompClient.publish({
-        destination: '/app/text', // Sending to the backend for text updates
-        body: message,
+  // This is for Drawing
+  subscribeToTopicForDrawing(topic: string): void{
+    if (this.stompClient) {
+      this.stompClient.subscribe(topic, (message: any) => {
+        console.log('Received message from drawing:', message.body);
+
+        const decodedMessage = new TextDecoder().decode(message._binaryBody);
+        const parsedMessage = JSON.parse(decodedMessage);
+
+        this.drawSubject.next(parsedMessage); // Push new messages to the subject
+      });
+    } else {
+      console.error('Cannot subscribe: WebSocket not connected.');
+    }
+  }
+
+    // Send drawing updates to the server
+    sendDrawUpdate(data: any): void {
+      if (this.stompClient && this.stompClient.connected) {
+        this.stompClient.publish({
+          destination: '/app/draw', // Sending to the backend for drawing updates
+          body: JSON.stringify(data),
+        });
+      }
+    }
+
+
+  disconnect(): void {
+    if (this.stompClient) {
+      this.stompClient.disconnect(() => {
+        console.log('WebSocket disconnected');
+        this.isConnected = false;
       });
     }
   }
 
-  // Send drawing updates to the server
-  sendDrawUpdate(data: any): void {
-    if (this.stompClient && this.stompClient.connected) {
-      this.stompClient.publish({
-        destination: '/app/draw', // Sending to the backend for drawing updates
-        body: JSON.stringify(data),
-      });
-    }
-  }
 
-  // Receive text updates as Observable
-  onTextUpdate() {
-    return this.textSubject.asObservable();
-  }
+  
 
-  // Receive drawing updates as Observable
-  onDrawUpdate() {
-    return this.drawSubject.asObservable();
-  }
+
+
+
+
 }
+
+
+
+  
+
+
+  // sendMessages(destination: string, body: any): void {
+  //   if (this.stompClient && this.isConnected) {
+  //     this.stompClient.send(destination, {}, JSON.stringify(body));
+  //     console.log('Message sent:', body);
+  //   } else {
+  //     console.error('Cannot send message: WebSocket not connected.');
+  //   }
+  // }

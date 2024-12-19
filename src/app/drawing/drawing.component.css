@@ -1,19 +1,33 @@
+/* Remove margins and padding from the body and html to avoid scrolling */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* Disable scrolling */
+}
+
 /* Set up the full-screen container */
 .drawing-container {
-  position: relative;
+  position: absolute;  /* Use absolute positioning for full screen */
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100vh;  /* Use the full height of the viewport */
-  background-color: #f0f0f0;
+  height: 100%;  /* Ensure it takes up the full height of the viewport */
+  background-color: #c86f6f;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  overflow: hidden; /* Disable scrolling */
 }
 
 /* The canvas should take up the entire space of the container */
 canvas {
-  width: 100%;
-  height: 100%;
-  border: 2px solid black;
+  width: 95vw;  /* 100% of the viewport width */
+  height: 88vh; /* 100% of the viewport height */
+  border: 12px solid black;
+  border-radius: 8%;
   background-color: white;
 }
+
+

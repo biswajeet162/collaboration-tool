@@ -4,12 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { MessageModel } from '../model/message-model';
 
 @Component({
-  selector: 'app-editor',
+  selector: 'app-chat',
   standalone: false,
-  templateUrl: './editor.component.html',
-  styleUrls: ['./editor.component.css'],
+  templateUrl: './chat.component.html',
+  styleUrls: ['./chat.component.css'],
 })
-export class EditorComponent implements OnInit, OnDestroy {
+export class ChatComponent implements OnInit, OnDestroy {
 
   colorListForUser: Map<string, string> | undefined;
 
@@ -28,10 +28,6 @@ export class EditorComponent implements OnInit, OnDestroy {
       this.userId = params.get('userId')!;
     });
 
-    this.subscribeAndLiostenForTextUpdate()
-  }
-
-  subscribeAndLiostenForTextUpdate(){
     // Connect to WebSocket
     this.webSocketService.connect().then(() => {
       // Subscribe to public topic
@@ -61,6 +57,7 @@ export class EditorComponent implements OnInit, OnDestroy {
       });
     });
   }
+
  
   sendMessage(): void {
     if (this.messageContent.trim()) {
