@@ -1,5 +1,6 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { WebSocketService } from '../services/web-socket.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-drawing',
@@ -12,12 +13,57 @@ export class DrawingComponent implements OnInit {
   private ctx!: CanvasRenderingContext2D;
   private drawing = false;
 
-  constructor(private webSocketService: WebSocketService) {}
+  drawingId!: string;
+
+  constructor(private webSocketService: WebSocketService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
+
+    this.drawingId = this.route.snapshot.paramMap.get('drawingId')!;
+
+    
+
+
     this.setupCanvas(); // Set up the canvas for drawing
     this.subscribeAndListenForDrawingUpdates(); // Listen for drawing updates from WebSocket
     window.addEventListener('resize', () => this.setupCanvas()); // Adjust canvas on screen resize
+
+
+  }
+
+  onNewUserLoadDrawingData(drawingId: string){
+
+    this.webSocketService.getInitialDrawingData(drawingId).subscribe(
+      (data : any) => {
+        // console.log('Drawing data:', data);
+        this.renderDrawing(data);
+      },
+      (error) => {
+        console.error('Error fetching drawing data:', error);
+      }
+    );
+  }
+
+  renderDrawing(drawingData: any[]) {
+    this.setupCanvas()
+
+    if (!drawingData || drawingData.length === 0) return;
+  
+    drawingData.forEach((point) => {
+      if (point.drawing === false) {
+        this.ctx.beginPath();
+      } else {
+        const { x, y } = point;
+        this.ctx.lineWidth = 2;
+        this.ctx.lineCap = 'round';
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineTo(x, y);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+      }
+    });
+
   }
 
   setupCanvas() {
@@ -41,7 +87,10 @@ export class DrawingComponent implements OnInit {
   subscribeAndListenForDrawingUpdates() {
     this.webSocketService.connect().then(() => {
       // Subscribe to public topic
-      this.webSocketService.subscribeToTopicForDrawing('/topic/drawingUpdates');
+      this.webSocketService.subscribeToTopicForDrawing('/topic/drawingUpdates/' + this.drawingId);
+
+    this.onNewUserLoadDrawingData(this.drawingId);
+
       // Listen for draw updates
       this.webSocketService.drawUpdates$.subscribe((data: any) => {
         if (data == null || data.drawing === false) {
@@ -92,7 +141,7 @@ export class DrawingComponent implements OnInit {
     this.ctx.moveTo(x, y);
 
     // Send drawing data via WebSocket
-    this.webSocketService.sendDrawUpdate({ x, y, drawing: true });
+    this.webSocketService.sendDrawUpdate({ x, y, drawing: true }, this.drawingId);
   }
 
   stopDrawing() {
@@ -100,6 +149,20 @@ export class DrawingComponent implements OnInit {
     this.ctx.beginPath();
 
     // Notify WebSocket that drawing has stopped
-    this.webSocketService.sendDrawUpdate({ drawing: false });
+    this.webSocketService.sendDrawUpdate({ drawing: false }, this.drawingId);
   }
+
+  clearDrawingData(){
+
+    this.webSocketService.clearDrawingData(this.drawingId).subscribe(
+      (data : any) => {
+        // console.log('Drawing data:', data);
+        this.renderDrawing(data);
+      },
+      (error) => {
+        console.error('Error clearing drawing data:', error);
+      }
+    );
+  }
+
 }

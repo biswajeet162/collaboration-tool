@@ -4,6 +4,7 @@ import { Stomp } from '@stomp/stompjs';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs';
 import { MessageModel } from '../model/message-model';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +19,8 @@ export class WebSocketService {
 
   private drawSubject = new BehaviorSubject<any>(null);  // For drawing updates
   drawUpdates$: Observable<any> = this.drawSubject.asObservable();
+
+  constructor(private http: HttpClient){}
 
   
   connect(): Promise<string> {
@@ -86,13 +89,21 @@ export class WebSocketService {
   }
 
     // Send drawing updates to the server
-    sendDrawUpdate(data: any): void {
+    sendDrawUpdate(data: any, drawingId: string): void {
       if (this.stompClient && this.stompClient.connected) {
         this.stompClient.publish({
-          destination: '/app/draw', // Sending to the backend for drawing updates
+          destination: '/app/draw/'+ drawingId, // Sending to the backend for drawing updates
           body: JSON.stringify(data),
         });
       }
+    }
+
+    private apiUrl = 'http://localhost:8081/api/drawings';
+    getInitialDrawingData(drawingId: string) {
+      return this.http.get(`${this.apiUrl}/${drawingId}`);
+    }
+    clearDrawingData(drawingId: string) {
+      return this.http.get(`${this.apiUrl}/clear/${drawingId}`);
     }
 
 

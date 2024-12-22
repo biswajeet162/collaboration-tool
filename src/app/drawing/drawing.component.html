@@ -1,10 +1,10 @@
 <div class="drawing-container">
-  <h2>Drawing Board</h2>
+  <h2 (click)="clearDrawingData()">Drawing Board</h2>
   <canvas 
     #drawingCanvas 
     (mousedown)="startDrawing($event)" 
     (mousemove)="draw($event)" 
     (mouseup)="stopDrawing()" 
     (mouseout)="stopDrawing()">
-  </canvas>
+</canvas>
 </div>

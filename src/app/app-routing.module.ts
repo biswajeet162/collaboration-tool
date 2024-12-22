@@ -6,9 +6,10 @@ import { ChatComponent } from './chat/chat.component';
 
 const routes: Routes = [
   // Define dynamic route for editor with userId and optional connectedTo query parameters
+  { path: 'chat', component: ChatComponent },
   { path: 'editor/user/:userId', component: EditorComponent },
-  { path: 'drawing', component: DrawingComponent },
-  { path: '**', redirectTo: '/drawing', pathMatch: 'full' } // Default route
+  { path: 'drawing/drawingId/:drawingId', component: DrawingComponent },
+  { path: '**', redirectTo: '/chat', pathMatch: 'full' } // Default route
 ];
 
 @NgModule({
