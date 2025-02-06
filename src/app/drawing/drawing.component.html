@@ -1,10 +1,47 @@
-<div class="drawing-container">
-  <h2 (click)="clearDrawingData()">Drawing Board</h2>
-  <canvas 
-    #drawingCanvas 
-    (mousedown)="startDrawing($event)" 
-    (mousemove)="draw($event)" 
-    (mouseup)="stopDrawing()" 
-    (mouseout)="stopDrawing()">
-</canvas>
+<!-- <div 
+  class="drawing-board" 
+  (click)="onBoardClick($event)"
+  style="position: relative; width: 100%; height: 500px; border: 2px solid black;">
+
+  <div *ngFor="let textBox of textBoxes" [ngStyle]="{ 
+      position: 'absolute',
+      left: textBox.x + 'px',
+      top: textBox.y + 'px'
+    }">
+    <span>{{ textBox.text }}</span>
+  </div>
+
+  <div *ngIf="activeTextBox" [ngStyle]="{ 
+      position: 'absolute',
+      left: activeTextBox.x + 'px',
+      top: activeTextBox.y + 'px'
+    }">
+    <input type="text" 
+      [(ngModel)]="activeTextBox.text" 
+      (blur)="saveText()" 
+      placeholder="Write something..." />
+  </div>
+</div> -->
+
+
+
+
+
+<div>
+  <button (click)="selectTool('pencil')">Pencil</button>
+  <button (click)="selectTool('rectangle')">Rectangle</button>
+  <button (click)="selectTool('ellipse')">ellipse</button>
+  <button (click)="selectTool('single_arrow_line')">Arrow</button>
+  <button (click)="selectTool('double_arrow_line')">DoubleArrow</button>
+
 </div>
+
+<canvas #drawingCanvas (mousedown)="startDrawing($event)" 
+        (mousemove)="draw($event)" 
+        (mouseup)="stopDrawing()" 
+        (mouseleave)="stopDrawing()">
+</canvas>
+
+
+
+

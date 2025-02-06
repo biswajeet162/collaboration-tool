@@ -1,33 +1,66 @@
-/* Remove margins and padding from the body and html to avoid scrolling */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden; /* Disable scrolling */
+/* .drawing-board {
+  background-color: #f9f9f9;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Set up the full-screen container */
-.drawing-container {
-  position: absolute;  /* Use absolute positioning for full screen */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;  /* Ensure it takes up the full height of the viewport */
-  background-color: #c86f6f;
+input[type="text"] {
+  border: 1px solid #ccc;
+  padding: 5px;
+  width: 150px;
+  font-size: 14px;
+}
+
+span {
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  color: #333;
+} */
+
+
+
+
+/* drawing.component.css */
+.toolbar {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  overflow: hidden; /* Disable scrolling */
+  gap: 10px;
 }
 
-/* The canvas should take up the entire space of the container */
-canvas {
-  width: 95vw;  /* 100% of the viewport width */
-  height: 88vh; /* 100% of the viewport height */
-  border: 12px solid black;
-  border-radius: 8%;
+.toolbar button {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: 1px solid #ccc;
   background-color: white;
 }
 
+.toolbar button.active {
+  background-color: #007bff;
+  color: white;
+}
 
+canvas {
+  cursor: crosshair;
+} 
+
+
+
+canvas {
+  border: 1px solid black;
+  cursor: crosshair;
+}
+
+.toolbar {
+  margin-bottom: 10px;
+}
+
+button.active {
+  background-color: lightblue;
+}
+
+button {
+  margin: 5px;
+}
+
+.red {
+  color: red;
+}
