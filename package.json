@@ -20,12 +20,14 @@
     "@angular/router": "^19.0.0",
     "@ffmpeg/core": "^0.12.10",
     "@stomp/stompjs": "^7.0.0",
+    "fabric": "^6.5.4",
     "global": "^4.4.0",
     "recorder-js": "^1.0.7",
     "recordrtc": "^5.6.2",
     "rxjs": "~7.8.0",
     "sockjs-client": "^1.6.1",
     "tslib": "^2.3.0",
+    "uuid": "^11.0.5",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
