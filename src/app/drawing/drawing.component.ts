@@ -53,12 +53,40 @@ export class DrawingComponent implements AfterViewInit {
   }
 
   // Resize function to keep canvas full screen on window resize
-  resizeCanvas() {
+  resizeCanvass() {
       const width = window.innerWidth -  120;
       const height = window.innerHeight - 45;
       this.canvas.setDimensions({ width, height });
       this.canvas.renderAll();
   }
+
+  resizeCanvas() {
+    const prevWidth = this.canvas.width || window.innerWidth - 120;
+    const prevHeight = this.canvas.height || window.innerHeight - 45;
+    
+    const newWidth = window.innerWidth - 120;
+    const newHeight = window.innerHeight - 45;
+    
+    // Calculate scale factors
+    const scaleX = newWidth / prevWidth;
+    const scaleY = newHeight / prevHeight;
+    
+    // Scale all objects proportionally
+    this.canvas.getObjects().forEach((obj) => {
+        obj.scaleX = (obj.scaleX || 1) * scaleX;
+        obj.scaleY = (obj.scaleY || 1) * scaleY;
+        obj.left = (obj.left || 0) * scaleX;
+        obj.top = (obj.top || 0) * scaleY;
+        obj.setCoords(); // Update object's coordinates
+    });
+
+    // Resize the canvas
+    this.canvas.setDimensions({ width: newWidth, height: newHeight });
+
+    // Refresh the canvas
+    this.canvas.renderAll();
+}
+
 
   toggleDrawingMode() {
     this.isDrawingMode = !this.isDrawingMode;
