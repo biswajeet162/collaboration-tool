@@ -1,14 +1,25 @@
-<div class="drawing-wrapper">
-  <!-- Left Sidebar -->
-  <div class="sidebar">
-    <button (click)="toggleDrawingMode()" class="icon-btn">
-      {{ isDrawingMode ? '🖱️ Select' : '✏️ Draw' }}
-    </button>
-    <button (click)="clearCanvas()" class="icon-btn">🗑️ Clear</button>
+<div class="toolbar">
+  <div class="tool-group">
+    <button (click)="setSelectMode()" [class.active]="selectedTool === 'select'">✋ Select</button>
+    <button (click)="setPencilMode()" [class.active]="selectedTool === 'pencil'">🖊 Pencil</button>
+    <button (click)="setShapeMode('rectangle')" [class.active]="selectedTool === 'rectangle'">⬛ Rectangle</button>
+    <button (click)="setShapeMode('square')" [class.active]="selectedTool === 'square'">◼ Square</button>
+    <button (click)="setShapeMode('circle')" [class.active]="selectedTool === 'circle'">⚪ Circle</button>
+    <button (click)="setShapeMode('line')" [class.active]="selectedTool === 'line'">📏 Line</button>
+    <button (click)="setShapeMode('arrow')" [class.active]="selectedTool === 'arrow'">➡ Arrow</button>
+    <button (click)="setShapeMode('double-arrow')" [class.active]="selectedTool === 'double-arrow'">⟷ Double Arrow</button>
   </div>
 
-  <!-- Full-Screen Canvas -->
-  <div class="canvas-container">
-    <canvas #canvas width="1000" height="600"></canvas>
+  <div class="settings-group">
+    <input type="color" [(ngModel)]="lineColor" (change)="changeBrushColor()" title="Choose Color" />
+    <input type="range" min="1" max="10" [(ngModel)]="lineThickness" (input)="changeBrushThickness()" title="Line Thickness" />
+    <select [(ngModel)]="lineStyle" (change)="changeBrushStyle($event)">
+      <option value="solid">Solid</option>
+      <option value="dashed">Dashed</option>
+    </select>
   </div>
+
+  <button class="clear-btn" (click)="clearCanvas()">❌ Clear</button>
 </div>
+
+<canvas #canvas></canvas>
