@@ -1,13 +1,30 @@
 <div class="toolbar">
   <div class="tool-group">
-    <button (click)="setSelectMode()" [class.active]="selectedTool === 'select'">✋ Select</button>
-    <button (click)="setPencilMode()" [class.active]="selectedTool === 'pencil'">🖊 Pencil</button>
-    <button (click)="setShapeMode('rectangle')" [class.active]="selectedTool === 'rectangle'">⬛ Rectangle</button>
-    <button (click)="setShapeMode('square')" [class.active]="selectedTool === 'square'">◼ Square</button>
-    <button (click)="setShapeMode('circle')" [class.active]="selectedTool === 'circle'">⚪ Circle</button>
-    <button (click)="setShapeMode('line')" [class.active]="selectedTool === 'line'">📏 Line</button>
-    <button (click)="setShapeMode('arrow')" [class.active]="selectedTool === 'arrow'">➡ Arrow</button>
-    <button (click)="setShapeMode('double-arrow')" [class.active]="selectedTool === 'double-arrow'">⟷ Double Arrow</button>
+    <button (click)="setSelectMode()" [class.active]="selectedTool === 'select'">👆 Select</button>
+    <button (click)="setPencilMode()" [class.active]="selectedTool === 'pencil'">✏️ Pencil</button>
+    <button (click)="setShapeMode('rectangle')" [class.active]="selectedTool === 'rectangle'">▭ Rectangle</button>
+    <button (click)="setShapeMode('square')" [class.active]="selectedTool === 'square'">▢ Square</button>
+    <button (click)="setShapeMode('circle')" [class.active]="selectedTool === 'circle'">⭕ Circle</button>
+    <button (click)="setShapeMode('line')" [class.active]="selectedTool === 'line'">➖ Line</button>
+    <button (click)="setShapeMode('arrow')" [class.active]="selectedTool === 'arrow'">➡️ Arrow</button>
+    <button (click)="setShapeMode('double-arrow')" [class.active]="selectedTool === 'double-arrow'">⇄ Double Arrow</button>
+
+    <select (change)="changeTextSize($event)">
+      <option value="12">12px</option>
+      <option value="16">16px</option>
+      <option value="20" selected>20px</option>
+      <option value="24">24px</option>
+      <option value="30">30px</option>
+      <option value="36">36px</option>
+      <option value="36">48px</option>
+      <option value="36">55px</option>
+      <option value="36">65px</option>
+      <option value="36">78px</option>
+      <option value="36">85px</option>
+      <option value="36">95px</option>
+    </select>
+    <button (click)="setTextMode()" [class.active]="selectedTool === 'text'">📝 Text Tool</button>
+
   </div>
 
   <div class="settings-group">

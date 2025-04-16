@@ -4,7 +4,7 @@ import * as fabric from 'fabric';
 import { interval } from 'rxjs';
 
 interface DrawingChange {
-  data: any;  // You can replace `any` with a more specific type if needed
+  data: any;  // You can replace any with a more specific type if needed
 }
 
 @Component({
@@ -18,7 +18,7 @@ export class DrawingComponent implements AfterViewInit {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef;
 
   canvas!: fabric.Canvas;
-  selectedTool: 'pencil' | 'rectangle' | 'square' | 'circle' | 'select' | 'line' | 'arrow' | 'double-arrow' = 'pencil';
+  selectedTool: 'pencil' | 'rectangle' | 'square' | 'circle' | 'select' | 'line' | 'arrow' | 'double-arrow' | 'text' = 'pencil';
 
   lineColor: string = '#000000';
   lineThickness: number = 2;
@@ -29,7 +29,12 @@ export class DrawingComponent implements AfterViewInit {
   private startY = 0;
   private currentShape: fabric.Object | null = null;
 
+  textSize: number = 20;  // Default text size
+
+
   private drawingId = 'drawingData123';
+
+
 
   ngAfterViewInit(): void {
     this.initializeCanvas();
@@ -44,6 +49,13 @@ export class DrawingComponent implements AfterViewInit {
 
     // Listen for delete key event
     document.addEventListener('keydown', (event) => this.handleKeyPress(event));
+
+    document.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        event.preventDefault(); // Prevent browser default select-all behavior
+        this.selectAllObjects();
+      }
+    });
 
     // Ensure the canvas resizes when window size changes
     window.addEventListener('resize', () => this.resizeCanvas());
@@ -80,7 +92,14 @@ export class DrawingComponent implements AfterViewInit {
     this.canvas.freeDrawingBrush.width = this.lineThickness;
   }
 
-  setShapeMode(shape: 'rectangle' | 'square' | 'circle' | 'line' | 'arrow' | 'double-arrow') {
+  setTextMode() {
+    this.selectedTool = 'text';
+    this.canvas.isDrawingMode = false; // Disable drawing mode
+    this.canvas.selection = false; // Disable selection of other elements
+  }
+  
+
+  setShapeMode(shape: 'rectangle' | 'square' | 'circle' | 'line' | 'arrow' | 'double-arrow' | 'text') {
     this.selectedTool = shape;
     this.canvas.isDrawingMode = false;
     this.canvas.selection = false;
@@ -136,6 +155,61 @@ export class DrawingComponent implements AfterViewInit {
         selectable: true,  // Allow selection
         evented: true      // Allow interactions
       });
+    }
+    else if (this.selectedTool === 'text') {
+
+      // Create a Textbox with placeholder text
+      const text = new fabric.Textbox('', {
+        left: this.startX,
+        top: this.startY,
+        fontSize: this.textSize, // Use selected size
+        fill: this.lineColor, // Use selected color
+        fontFamily: 'Arial',
+        width: 100, // Fixed width to prevent word wrapping
+        editable: true,
+        selectable: true,
+        evented: true,
+        editingBorderColor: 'blue',
+      });
+
+      
+      this.canvas.add(text);
+      this.canvas.setActiveObject(text);
+      text.enterEditing(); // Allow immediate text editing
+      text.hiddenTextarea?.focus(); // Focus to type
+
+      // Show placeholder when no text is present
+      text.on('editing:entered', () => {
+        if (text.text === 'Enter Text') {
+          text.text = '';
+        }
+        this.canvas.renderAll();
+      });
+
+      // Remove text if empty when exiting editing mode
+      text.on('editing:exited', () => {
+        if (text.text.trim() === '') {
+          this.canvas.remove(text); // Remove empty text
+        }
+        this.canvas.renderAll();
+      });
+
+
+      // const text = new fabric.Textbox('Enter text', {
+      //   left: this.startX,
+      //   top: this.startY,
+      //   fontSize: this.textSize, // Use selected text size
+      //   fill: this.lineColor, // Use selected color
+      //   fontFamily: 'Arial',
+      //   selectable: true,
+      //   evented: true,
+      //   editingBorderColor: 'blue',
+      // });
+  
+      // this.canvas.add(text);
+      // this.canvas.setActiveObject(text);
+      // text.enterEditing(); // Allow immediate text editing
+      // text.hiddenTextarea?.focus(); // Ensure focus for typing
     }
 
     if (this.currentShape) {
@@ -242,9 +316,26 @@ export class DrawingComponent implements AfterViewInit {
     this.lineStyle = (event.target as HTMLSelectElement).value; // Cast Event target to HTMLSelectElement
   }
 
+  changeTextSize(event: Event) {
+    this.textSize = +(event.target as HTMLSelectElement).value;
+  
+    const activeObject = this.canvas.getActiveObject();
+    if (activeObject && activeObject.type === 'textbox') {
+      (activeObject as fabric.Textbox).set({ fontSize: this.textSize });
+      this.canvas.renderAll();
+    }
+  }
+  
+
   clearCanvas() {
+    // Clear all objects from the canvas
     this.canvas.clear();
     this.canvas.backgroundColor = '#fff';
+    this.canvas.renderAll();
+
+    // Clear the storage by setting an empty state
+    localStorage.removeItem(this.drawingId);
+    localStorage.setItem(this.drawingId, JSON.stringify({ changes: [] }));
   }
 
   handleKeyPress(event: KeyboardEvent) {
@@ -263,6 +354,16 @@ export class DrawingComponent implements AfterViewInit {
         this.canvas.renderAll();
         this.saveToStorage(); // Save after deletion
       }
+    }
+  }
+
+  selectAllObjects() {
+    const objects = this.canvas.getObjects();
+    if (objects.length > 0) {
+      this.canvas.discardActiveObject(); // Clear current selection
+      const selection = new fabric.ActiveSelection(objects, { canvas: this.canvas });
+      this.canvas.setActiveObject(selection);
+      this.canvas.requestRenderAll(); // Refresh canvas
     }
   }
   
