@@ -2,6 +2,8 @@ import { Component, AfterViewInit, ElementRef, ViewChild, HostListener, OnInit }
 import { v4 as uuidv4 } from 'uuid';
 import * as fabric from 'fabric';
 import { interval } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { DrawingService } from '../services/drawing.service';
 
 interface DrawingChange {
   data: any;  // You can replace any with a more specific type if needed
@@ -13,8 +15,7 @@ interface DrawingChange {
   templateUrl: './drawing.component.html',
   styleUrls: ['./drawing.component.css']
 })
-
-export class DrawingComponent implements AfterViewInit {
+export class DrawingComponent implements AfterViewInit, OnInit {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef;
 
   canvas!: fabric.Canvas;
@@ -31,21 +32,28 @@ export class DrawingComponent implements AfterViewInit {
 
   textSize: number = 20;  // Default text size
 
+  constructor(
+    private drawingService: DrawingService,
+    private route: ActivatedRoute
+  ) {}
 
-  private drawingId = 'drawingData123';
-
-
+  ngOnInit() {
+    // Get drawingId from route parameters
+    this.route.paramMap.subscribe(params => {
+      const drawingId = params.get('drawingId') || uuidv4();
+      this.drawingService.setDrawingId(drawingId);
+    });
+  }
 
   ngAfterViewInit(): void {
     this.initializeCanvas();
-    this.loadFromStorage();
+    this.drawingService.loadFromStorage(this.canvas);
+    this.drawingService.initializeWebSocket(this.canvas);
 
     // Set default drawing mode to true
-    // this.isDrawingMode = true;
     this.canvas.isDrawingMode = true;
 
-    this.canvas.on('path:created', () => this.saveToStorage());
-
+    this.canvas.on('path:created', () => this.drawingService.saveDrawing(this.canvas));
 
     // Listen for delete key event
     document.addEventListener('keydown', (event) => this.handleKeyPress(event));
@@ -58,29 +66,18 @@ export class DrawingComponent implements AfterViewInit {
     });
 
     // Ensure the canvas resizes when window size changes
-    window.addEventListener('resize', () => this.resizeCanvas());
+    window.addEventListener('resize', () => this.drawingService.resizeCanvas(this.canvas));
   }
 
   initializeCanvas() {
     const canvasElement = this.canvasRef.nativeElement;
-    this.canvas = new fabric.Canvas(canvasElement, {
-      backgroundColor: '#fff',
-      selection: false // Prevent selection unless in "select" mode
-    });
-
-    this.canvas.setDimensions({
-      width: window.innerWidth - 120,
-      height: window.innerHeight - 45
-    });
-
+    this.canvas = this.drawingService.initializeCanvas(canvasElement);
     this.setPencilMode();
 
     // Mouse Events for drawing shapes
     this.canvas.on('mouse:down', (event) => this.startDrawing(event.e as MouseEvent));
     this.canvas.on('mouse:move', (event) => this.drawShape(event.e as MouseEvent));
     this.canvas.on('mouse:up', () => this.endDrawing());
-
-    window.addEventListener('resize', () => this.resizeCanvas());
   }
 
   setPencilMode() {
@@ -257,8 +254,7 @@ export class DrawingComponent implements AfterViewInit {
       this.currentShape = null;
     }
 
-    this.saveToStorage();
-
+    this.drawingService.saveDrawing(this.canvas);
   }
 
   addArrowToLine() {
@@ -328,14 +324,7 @@ export class DrawingComponent implements AfterViewInit {
   
 
   clearCanvas() {
-    // Clear all objects from the canvas
-    this.canvas.clear();
-    this.canvas.backgroundColor = '#fff';
-    this.canvas.renderAll();
-
-    // Clear the storage by setting an empty state
-    localStorage.removeItem(this.drawingId);
-    localStorage.setItem(this.drawingId, JSON.stringify({ changes: [] }));
+    this.drawingService.clearDrawing(this.canvas);
   }
 
   handleKeyPress(event: KeyboardEvent) {
@@ -345,14 +334,14 @@ export class DrawingComponent implements AfterViewInit {
       if (activeObject) {
         if (activeObject.type === 'activeSelection') {
           const objects = (activeObject as fabric.ActiveSelection).getObjects();
-          objects.forEach((obj) => this.canvas.remove(obj)); // Remove all selected objects
+          objects.forEach((obj) => this.canvas.remove(obj));
         } else {
           this.canvas.remove(activeObject);
         }
   
-        this.canvas.discardActiveObject(); // Deselect objects
+        this.canvas.discardActiveObject();
         this.canvas.renderAll();
-        this.saveToStorage(); // Save after deletion
+        this.drawingService.saveDrawing(this.canvas);
       }
     }
   }
@@ -360,55 +349,10 @@ export class DrawingComponent implements AfterViewInit {
   selectAllObjects() {
     const objects = this.canvas.getObjects();
     if (objects.length > 0) {
-      this.canvas.discardActiveObject(); // Clear current selection
+      this.canvas.discardActiveObject();
       const selection = new fabric.ActiveSelection(objects, { canvas: this.canvas });
       this.canvas.setActiveObject(selection);
-      this.canvas.requestRenderAll(); // Refresh canvas
+      this.canvas.requestRenderAll();
     }
-  }
-  
-  
-  
-
-  saveToStorage() {
-    const drawingData = this.canvas.toJSON();
-
-    // Retrieve existing storage data
-    let savedData = localStorage.getItem(this.drawingId);
-    let storageObject: { changes: { data: any }[] } = savedData ? JSON.parse(savedData) : { changes: [] };
-
-    // Append new change (or replace existing state)
-    storageObject.changes = [{ data: drawingData }]; // Always keep the latest state
-
-    // Store updated data
-    localStorage.setItem(this.drawingId, JSON.stringify(storageObject));
-}
-
-loadFromStorage() {
-    const savedData = localStorage.getItem(this.drawingId);
-    if (savedData) {
-        const parsed: { changes: { data: any }[] } = JSON.parse(savedData);
-
-        if (parsed.changes.length > 0) {
-            const lastChange = parsed.changes[parsed.changes.length - 1]; // Load the latest change
-
-            if (lastChange && lastChange.data) {
-                this.canvas.loadFromJSON(lastChange.data, () => {
-                    this.canvas.renderAll(); // Ensure the canvas is properly rendered after loading
-                });
-
-                setTimeout(() => {
-                    this.canvas.renderAll(); // Small delay to ensure rendering
-                }, 100);
-            }
-        }
-    }
-  }
-
-
-  resizeCanvas() {
-    const newWidth = window.innerWidth - 120;
-    const newHeight = window.innerHeight - 45;
-    this.canvas.setDimensions({ width: newWidth, height: newHeight });
   }
 }
