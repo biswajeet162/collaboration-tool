@@ -1,9 +1,10 @@
 import { Component, AfterViewInit, ElementRef, ViewChild, HostListener, OnInit } from '@angular/core';
-import { v4 as uuidv4 } from 'uuid';
 import * as fabric from 'fabric';
+
 import { interval } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { DrawingService } from '../services/drawing.service';
+
 
 interface DrawingChange {
   data: any;  // You can replace any with a more specific type if needed
