@@ -1,8 +1,13 @@
 import { Component, AfterViewInit, ElementRef, ViewChild, HostListener, OnInit } from '@angular/core';
 import * as fabric from 'fabric';
 
+import { interval } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { DrawingService } from '../services/drawing.service';
+
+
 interface DrawingChange {
-  data: any;  // You can replace `any` with a more specific type if needed
+  data: any;  // You can replace any with a more specific type if needed
 }
 
 @Component({
@@ -11,12 +16,11 @@ interface DrawingChange {
   templateUrl: './drawing.component.html',
   styleUrls: ['./drawing.component.css']
 })
-
-export class DrawingComponent implements AfterViewInit {
+export class DrawingComponent implements AfterViewInit, OnInit {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef;
 
   canvas!: fabric.Canvas;
-  selectedTool: 'pencil' | 'rectangle' | 'square' | 'circle' | 'select' | 'line' | 'arrow' | 'double-arrow' = 'pencil';
+  selectedTool: 'pencil' | 'rectangle' | 'square' | 'circle' | 'select' | 'line' | 'arrow' | 'double-arrow' | 'text' = 'pencil';
 
   lineColor: string = '#000000';
   lineThickness: number = 2;
@@ -27,46 +31,54 @@ export class DrawingComponent implements AfterViewInit {
   private startY = 0;
   private currentShape: fabric.Object | null = null;
 
-  private drawingId = 'drawingData123';
+  textSize: number = 20;  // Default text size
+
+  constructor(
+    private drawingService: DrawingService,
+    private route: ActivatedRoute
+  ) {}
+
+  ngOnInit() {
+    // Get drawingId from route parameters
+    this.route.paramMap.subscribe(params => {
+      const drawingId = params.get('drawingId') || uuidv4();
+      this.drawingService.setDrawingId(drawingId);
+    });
+  }
 
   ngAfterViewInit(): void {
     this.initializeCanvas();
-    this.loadFromStorage();
+    this.drawingService.loadFromStorage(this.canvas);
+    this.drawingService.initializeWebSocket(this.canvas);
 
     // Set default drawing mode to true
-    // this.isDrawingMode = true;
     this.canvas.isDrawingMode = true;
 
-    this.canvas.on('path:created', () => this.saveToStorage());
-
+    this.canvas.on('path:created', () => this.drawingService.saveDrawing(this.canvas));
 
     // Listen for delete key event
     document.addEventListener('keydown', (event) => this.handleKeyPress(event));
 
+    document.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        event.preventDefault(); // Prevent browser default select-all behavior
+        this.selectAllObjects();
+      }
+    });
+
     // Ensure the canvas resizes when window size changes
-    window.addEventListener('resize', () => this.resizeCanvas());
+    window.addEventListener('resize', () => this.drawingService.resizeCanvas(this.canvas));
   }
 
   initializeCanvas() {
     const canvasElement = this.canvasRef.nativeElement;
-    this.canvas = new fabric.Canvas(canvasElement, {
-      backgroundColor: '#fff',
-      selection: false // Prevent selection unless in "select" mode
-    });
-
-    this.canvas.setDimensions({
-      width: window.innerWidth - 120,
-      height: window.innerHeight - 45
-    });
-
+    this.canvas = this.drawingService.initializeCanvas(canvasElement);
     this.setPencilMode();
 
     // Mouse Events for drawing shapes
     this.canvas.on('mouse:down', (event) => this.startDrawing(event.e as MouseEvent));
     this.canvas.on('mouse:move', (event) => this.drawShape(event.e as MouseEvent));
     this.canvas.on('mouse:up', () => this.endDrawing());
-
-    window.addEventListener('resize', () => this.resizeCanvas());
   }
 
   setPencilMode() {
@@ -78,7 +90,14 @@ export class DrawingComponent implements AfterViewInit {
     this.canvas.freeDrawingBrush.width = this.lineThickness;
   }
 
-  setShapeMode(shape: 'rectangle' | 'square' | 'circle' | 'line' | 'arrow' | 'double-arrow') {
+  setTextMode() {
+    this.selectedTool = 'text';
+    this.canvas.isDrawingMode = false; // Disable drawing mode
+    this.canvas.selection = false; // Disable selection of other elements
+  }
+  
+
+  setShapeMode(shape: 'rectangle' | 'square' | 'circle' | 'line' | 'arrow' | 'double-arrow' | 'text') {
     this.selectedTool = shape;
     this.canvas.isDrawingMode = false;
     this.canvas.selection = false;
@@ -135,6 +154,61 @@ export class DrawingComponent implements AfterViewInit {
         evented: true      // Allow interactions
       });
     }
+    else if (this.selectedTool === 'text') {
+
+      // Create a Textbox with placeholder text
+      const text = new fabric.Textbox('', {
+        left: this.startX,
+        top: this.startY,
+        fontSize: this.textSize, // Use selected size
+        fill: this.lineColor, // Use selected color
+        fontFamily: 'Arial',
+        width: 100, // Fixed width to prevent word wrapping
+        editable: true,
+        selectable: true,
+        evented: true,
+        editingBorderColor: 'blue',
+      });
+
+      
+      this.canvas.add(text);
+      this.canvas.setActiveObject(text);
+      text.enterEditing(); // Allow immediate text editing
+      text.hiddenTextarea?.focus(); // Focus to type
+
+      // Show placeholder when no text is present
+      text.on('editing:entered', () => {
+        if (text.text === 'Enter Text') {
+          text.text = '';
+        }
+        this.canvas.renderAll();
+      });
+
+      // Remove text if empty when exiting editing mode
+      text.on('editing:exited', () => {
+        if (text.text.trim() === '') {
+          this.canvas.remove(text); // Remove empty text
+        }
+        this.canvas.renderAll();
+      });
+
+
+      // const text = new fabric.Textbox('Enter text', {
+      //   left: this.startX,
+      //   top: this.startY,
+      //   fontSize: this.textSize, // Use selected text size
+      //   fill: this.lineColor, // Use selected color
+      //   fontFamily: 'Arial',
+      //   selectable: true,
+      //   evented: true,
+      //   editingBorderColor: 'blue',
+      // });
+  
+      // this.canvas.add(text);
+      // this.canvas.setActiveObject(text);
+      // text.enterEditing(); // Allow immediate text editing
+      // text.hiddenTextarea?.focus(); // Ensure focus for typing
+    }
 
     if (this.currentShape) {
       this.canvas.add(this.currentShape);
@@ -181,8 +255,7 @@ export class DrawingComponent implements AfterViewInit {
       this.currentShape = null;
     }
 
-    this.saveToStorage();
-
+    this.drawingService.saveDrawing(this.canvas);
   }
 
   addArrowToLine() {
@@ -240,9 +313,19 @@ export class DrawingComponent implements AfterViewInit {
     this.lineStyle = (event.target as HTMLSelectElement).value; // Cast Event target to HTMLSelectElement
   }
 
+  changeTextSize(event: Event) {
+    this.textSize = +(event.target as HTMLSelectElement).value;
+  
+    const activeObject = this.canvas.getActiveObject();
+    if (activeObject && activeObject.type === 'textbox') {
+      (activeObject as fabric.Textbox).set({ fontSize: this.textSize });
+      this.canvas.renderAll();
+    }
+  }
+  
+
   clearCanvas() {
-    this.canvas.clear();
-    this.canvas.backgroundColor = '#fff';
+    this.drawingService.clearDrawing(this.canvas);
   }
 
   handleKeyPress(event: KeyboardEvent) {
@@ -252,60 +335,25 @@ export class DrawingComponent implements AfterViewInit {
       if (activeObject) {
         if (activeObject.type === 'activeSelection') {
           const objects = (activeObject as fabric.ActiveSelection).getObjects();
-          objects.forEach((obj) => this.canvas.remove(obj)); // Remove all selected objects
+          objects.forEach((obj) => this.canvas.remove(obj));
         } else {
           this.canvas.remove(activeObject);
         }
   
-        this.canvas.discardActiveObject(); // Deselect objects
+        this.canvas.discardActiveObject();
         this.canvas.renderAll();
-        this.saveToStorage(); // Save after deletion
+        this.drawingService.saveDrawing(this.canvas);
       }
     }
   }
-  
-  
-  
 
-  saveToStorage() {
-    const drawingData = this.canvas.toJSON();
-
-    // Retrieve existing storage data
-    let savedData = localStorage.getItem(this.drawingId);
-    let storageObject: { changes: { data: any }[] } = savedData ? JSON.parse(savedData) : { changes: [] };
-
-    // Append new change (or replace existing state)
-    storageObject.changes = [{ data: drawingData }]; // Always keep the latest state
-
-    // Store updated data
-    localStorage.setItem(this.drawingId, JSON.stringify(storageObject));
-}
-
-loadFromStorage() {
-    const savedData = localStorage.getItem(this.drawingId);
-    if (savedData) {
-        const parsed: { changes: { data: any }[] } = JSON.parse(savedData);
-
-        if (parsed.changes.length > 0) {
-            const lastChange = parsed.changes[parsed.changes.length - 1]; // Load the latest change
-
-            if (lastChange && lastChange.data) {
-                this.canvas.loadFromJSON(lastChange.data, () => {
-                    this.canvas.renderAll(); // Ensure the canvas is properly rendered after loading
-                });
-
-                setTimeout(() => {
-                    this.canvas.renderAll(); // Small delay to ensure rendering
-                }, 100);
-            }
-        }
+  selectAllObjects() {
+    const objects = this.canvas.getObjects();
+    if (objects.length > 0) {
+      this.canvas.discardActiveObject();
+      const selection = new fabric.ActiveSelection(objects, { canvas: this.canvas });
+      this.canvas.setActiveObject(selection);
+      this.canvas.requestRenderAll();
     }
-  }
-
-
-  resizeCanvas() {
-    const newWidth = window.innerWidth - 120;
-    const newHeight = window.innerHeight - 45;
-    this.canvas.setDimensions({ width: newWidth, height: newHeight });
   }
 }
