@@ -31,4 +31,5 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: dist/real-time-collaboration  # ← Use your actual project name here
+          folder: dist/real-time-collaboration/browser  # 👈 Corrected path
+
