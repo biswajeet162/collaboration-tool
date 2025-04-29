@@ -4,6 +4,7 @@ import * as fabric from 'fabric';
 import { interval } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { DrawingService } from '../services/drawing.service';
+import { v4 as uuidv4 } from 'uuid';
 
 
 interface DrawingChange {
