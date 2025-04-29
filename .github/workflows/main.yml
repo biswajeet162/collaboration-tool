@@ -3,7 +3,10 @@ name: Build and Deploy Angular to GitHub Pages
 on:
   push:
     branches:
-      - master  # or master
+      - master  # or your default branch
+
+permissions:
+  contents: write  # 👈 Required for pushing to gh-pages
 
 jobs:
   build-and-deploy:
@@ -22,10 +25,10 @@ jobs:
         run: npm install
 
       - name: Build Angular App
-        run: npm run build -- --base-href "real-time-collaboration"
+        run: npm run build -- --base-href "/collaboration-tool/"
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: dist/real-time-collaboration
+          folder: dist/real-time-collaboration  # ← Use your actual project name here
